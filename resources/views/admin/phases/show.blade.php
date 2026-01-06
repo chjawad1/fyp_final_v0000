@@ -173,7 +173,7 @@
                                                 {{ $project->supervisor->name ?? 'Not Assigned' }}
                                             </td>
                                             <td class="px-6 py-4 whitespace-nowrap">
-                                                <x-project-status-badge : status="$project->status" />
+                                                <x-project-status-badge :status="$project->status" />
                                             </td>
                                             <td class="px-6 py-4 whitespace-nowrap text-sm">
                                                 <a href="{{ route('admin.projects.show', $project) }}" class="text-indigo-600 hover:text-indigo-900 dark:text-indigo-400 dark:hover:text-indigo-300">

@@ -12,7 +12,7 @@
         ->whereHas('project', function ($query) {
             $query->where('supervisor_id', auth()->id());
         })
-        ->with(['project: id,title,user_id', 'project.student:id,name'])
+        ->with(['project:id,title,user_id', 'project.student:id,name'])
         ->latest()
         ->take(5)
         ->get();

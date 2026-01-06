@@ -84,7 +84,7 @@ class ProjectController extends Controller
     {
         $project->load([
             'student:id,name,email',
-            'supervisor: id,name,email',
+            'supervisor:id,name,email',
             'scopeDocuments' => function ($query) {
                 $query->with(['uploader:id,name', 'reviewer:id,name'])
                       ->orderBy('created_at', 'desc');
@@ -196,6 +196,15 @@ class ProjectController extends Controller
     {
         $project->load(['student', 'supervisor']);
 
+        $students = User::where('role', 'student')
+        ->where(function ($query) use ($project) {
+            // Include students without projects OR the current project's student
+            $query->whereDoesntHave('projects')
+                  ->orWhere('id', $project->user_id);
+        })
+        ->orderBy('name')
+        ->get();
+
         $supervisors = User::where('role', 'supervisor')
             ->orderBy('name')
             ->get();
@@ -206,7 +215,7 @@ class ProjectController extends Controller
 
         $phases = config('fyp.project_phases');
 
-        return view('admin.projects.edit', compact('project', 'supervisors', 'semesters', 'phases'));
+        return view('admin.projects.edit', compact('project','students', 'supervisors', 'semesters', 'phases'));
     }
 
     /**

@@ -44,117 +44,273 @@ class ProjectController extends Controller
     }
 
     /**
+ * Show the form for creating a new resource. 
+ */
+public function create()
+{
+    $user = Auth::user();
+
+    // Check if student can create new project (limit 3, no approved projects)
+    if (!$user->canCreateNewProject()) {
+        return redirect()
+            ->route('projects.index')
+            ->with('error', $user->getCannotCreateProjectReason());
+    }
+
+    $supervisors = User::where('role', 'supervisor')
+        ->whereHas('supervisorProfile', function ($query) {
+            $query->where('available_slots', '>', 0);
+        })
+        ->orderBy('name')
+        ->get();
+
+    // Get current active semester
+    $currentSemester = FypPhase::where('is_active', true)
+        ->where('start_date', '<=', now())
+        ->where('end_date', '>=', now())
+        ->value('semester');
+
+    // Check if idea submission phase is active
+    $ideaPhase = FypPhase::where('slug', 'idea_approval')
+        ->where('is_active', true)
+        ->where('start_date', '<=', now())
+        ->first();
+
+    $canSubmit = true;
+    $deadlineWarning = null;
+
+    if ($ideaPhase) {
+        if ($ideaPhase->isDeadlinePassed()) {
+            if (! $ideaPhase->allow_late) {
+                $canSubmit = false;
+                $deadlineWarning = 'The idea submission deadline has passed. You cannot submit a new project.';
+            } else {
+                $deadlineWarning = 'Warning: The idea submission deadline has passed.  Your submission will be marked as LATE.';
+            }
+        } elseif ($ideaPhase->days_remaining <= 3) {
+            $deadlineWarning = 'Warning:  Only ' . $ideaPhase->days_remaining . ' day(s) remaining until the deadline! ';
+        }
+    }
+
+    // Get current project count for display
+    $currentProjectCount = $user->projects()->count();
+
+    return view('projects.create', [
+        'supervisors' => $supervisors,
+        'currentSemester' => $currentSemester,
+        'canSubmit' => $canSubmit,
+        'deadlineWarning' => $deadlineWarning,
+        'ideaPhase' => $ideaPhase,
+        'currentProjectCount' => $currentProjectCount,
+        'maxProjects' => 3,
+    ]);
+}
+
+/**
+ * Store a newly created resource in storage.
+ */
+public function store(Request $request): RedirectResponse
+{
+    $user = Auth::user();
+
+    // Check if student can create new project (limit 3, no approved projects)
+    if (!$user->canCreateNewProject()) {
+        return redirect()
+            ->route('projects.index')
+            ->with('error', $user->getCannotCreateProjectReason());
+    }
+
+    $validated = $request->validate([
+        'title' => 'required|string|max: 255',
+        'description' => 'required|string',
+        'supervisor_id' => 'required|exists:users,id', // Fixed:  removed extra space
+    ]);
+
+    // Get current semester and check deadline
+    $ideaPhase = FypPhase::where('slug', 'idea_approval')
+        ->where('is_active', true)
+        ->first();
+
+    $isLate = false;
+    $semester = null;
+
+    if ($ideaPhase) {
+        $semester = $ideaPhase->semester;
+
+        if ($ideaPhase->isDeadlinePassed()) {
+            if (!$ideaPhase->allow_late) {
+                return redirect()
+                    ->route('projects.create')
+                    ->with('error', 'The idea submission deadline has passed.');
+            }
+            $isLate = true;
+        }
+    }
+
+    Auth::user()->projects()->create([
+        'title' => $validated['title'],
+        'description' => $validated['description'],
+        'supervisor_id' => $validated['supervisor_id'],
+        'status' => 'pending',
+        'current_phase' => Project::PHASE_IDEA,
+        'semester' => $semester,
+        'is_late' => $isLate,
+    ]);
+
+    $message = 'Project idea submitted successfully!';
+    if ($isLate) {
+        $message .= ' (Submitted after deadline - marked as LATE)';
+    }
+
+    return redirect()->route('projects.index')->with('success', $message);
+}
+
+/**
+ * Update the specified resource in storage.
+ */
+public function update(Request $request, Project $project): RedirectResponse
+{
+    if ($project->user_id !== Auth::id()) {
+        abort(403);
+    }
+
+    if ($project->status !== 'rejected') {
+        return redirect()
+            ->route('projects.index')
+            ->with('error', 'Only rejected projects can be edited.');
+    }
+
+    $validated = $request->validate([
+        'title' => 'required|string|max:255',
+        'description' => 'required|string',
+        'supervisor_id' => 'required|exists:users,id', // Fixed: removed extra space
+    ]);
+
+    $project->update([
+        'title' => $validated['title'],
+        'description' => $validated['description'],
+        'supervisor_id' => $validated['supervisor_id'],
+        'status' => 'pending',
+        'rejection_reason' => null,
+    ]);
+
+    return redirect()
+        ->route('projects.index')
+        ->with('success', 'Project resubmitted successfully! ');
+}
+
+    /**
      * Show the form for creating a new resource.
      */
-    public function create()
-    {
-        // Check if student already has a project
-        if (Auth::user()->projects()->exists()) {
-            return redirect()
-                ->route('projects.index')
-                ->with('error', 'You already have a project.  You cannot create another one.');
-        }
+    // public function create()
+    // {
+    //     // Check if student already has a project
+    //     if (Auth::user()->projects()->exists()) {
+    //         return redirect()
+    //             ->route('projects.index')
+    //             ->with('error', 'You already have a project.  You cannot create another one.');
+    //     }
 
-        $supervisors = User::where('role', 'supervisor')
-            ->whereHas('supervisorProfile', function ($query) {
-                $query->where('available_slots', '>', 0);
-            })
-            ->orderBy('name')
-            ->get();
+    //     $supervisors = User::where('role', 'supervisor')
+    //         ->whereHas('supervisorProfile', function ($query) {
+    //             $query->where('available_slots', '>', 0);
+    //         })
+    //         ->orderBy('name')
+    //         ->get();
 
-        // Get current active semester
-        $currentSemester = FypPhase::where('is_active', true)
-            ->where('start_date', '<=', now())
-            ->where('end_date', '>=', now())
-            ->value('semester');
+    //     // Get current active semester
+    //     $currentSemester = FypPhase::where('is_active', true)
+    //         ->where('start_date', '<=', now())
+    //         ->where('end_date', '>=', now())
+    //         ->value('semester');
 
-        // Check if idea submission phase is active
-        $ideaPhase = FypPhase::where('slug', 'idea_approval')
-            ->where('is_active', true)
-            ->where('start_date', '<=', now())
-            ->first();
+    //     // Check if idea submission phase is active
+    //     $ideaPhase = FypPhase::where('slug', 'idea_approval')
+    //         ->where('is_active', true)
+    //         ->where('start_date', '<=', now())
+    //         ->first();
 
-        $canSubmit = true;
-        $deadlineWarning = null;
+    //     $canSubmit = true;
+    //     $deadlineWarning = null;
 
-        if ($ideaPhase) {
-            if ($ideaPhase->isDeadlinePassed()) {
-                if (!$ideaPhase->allow_late) {
-                    $canSubmit = false;
-                    $deadlineWarning = 'The idea submission deadline has passed. You cannot submit a new project. ';
-                } else {
-                    $deadlineWarning = 'Warning: The idea submission deadline has passed. Your submission will be marked as LATE.';
-                }
-            } elseif ($ideaPhase->days_remaining <= 3) {
-                $deadlineWarning = 'Warning: Only ' . $ideaPhase->days_remaining . ' day(s) remaining until the deadline! ';
-            }
-        }
+    //     if ($ideaPhase) {
+    //         if ($ideaPhase->isDeadlinePassed()) {
+    //             if (!$ideaPhase->allow_late) {
+    //                 $canSubmit = false;
+    //                 $deadlineWarning = 'The idea submission deadline has passed. You cannot submit a new project. ';
+    //             } else {
+    //                 $deadlineWarning = 'Warning: The idea submission deadline has passed. Your submission will be marked as LATE.';
+    //             }
+    //         } elseif ($ideaPhase->days_remaining <= 3) {
+    //             $deadlineWarning = 'Warning: Only ' . $ideaPhase->days_remaining . ' day(s) remaining until the deadline! ';
+    //         }
+    //     }
 
-        return view('projects.create', [
-            'supervisors' => $supervisors,
-            'currentSemester' => $currentSemester,
-            'canSubmit' => $canSubmit,
-            'deadlineWarning' => $deadlineWarning,
-            'ideaPhase' => $ideaPhase,
-        ]);
-    }
+    //     return view('projects.create', [
+    //         'supervisors' => $supervisors,
+    //         'currentSemester' => $currentSemester,
+    //         'canSubmit' => $canSubmit,
+    //         'deadlineWarning' => $deadlineWarning,
+    //         'ideaPhase' => $ideaPhase,
+    //     ]);
+    // }
 
     /**
      * Store a newly created resource in storage. 
      */
-    public function store(Request $request): RedirectResponse
-    {
-        // Check if student already has a project
-        if (Auth::user()->projects()->exists()) {
-            return redirect()
-                ->route('projects.index')
-                ->with('error', 'You already have a project.');
-        }
+    // public function store(Request $request): RedirectResponse
+    // {
+    //     // Check if student already has a project
+    //     if (Auth::user()->projects()->exists()) {
+    //         return redirect()
+    //             ->route('projects.index')
+    //             ->with('error', 'You already have a project.');
+    //     }
 
-        $validated = $request->validate([
-            'title' => 'required|string|max:255',
-            'description' => 'required|string',
-            'supervisor_id' => 'required|exists: users,id',
-        ]);
+    //     $validated = $request->validate([
+    //         'title' => 'required|string|max:255',
+    //         'description' => 'required|string',
+    //         'supervisor_id' => 'required|exists:users,id',
+    //     ]);
 
-        // Get current semester and check deadline
-        $ideaPhase = FypPhase::where('slug', 'idea_approval')
-            ->where('is_active', true)
-            ->first();
+    //     // Get current semester and check deadline
+    //     $ideaPhase = FypPhase::where('slug', 'idea_approval')
+    //         ->where('is_active', true)
+    //         ->first();
 
-        $isLate = false;
-        $semester = null;
+    //     $isLate = false;
+    //     $semester = null;
 
-        if ($ideaPhase) {
-            $semester = $ideaPhase->semester;
+    //     if ($ideaPhase) {
+    //         $semester = $ideaPhase->semester;
 
-            if ($ideaPhase->isDeadlinePassed()) {
-                if (!$ideaPhase->allow_late) {
-                    return redirect()
-                        ->route('projects.create')
-                        ->with('error', 'The idea submission deadline has passed.');
-                }
-                $isLate = true;
-            }
-        }
+    //         if ($ideaPhase->isDeadlinePassed()) {
+    //             if (!$ideaPhase->allow_late) {
+    //                 return redirect()
+    //                     ->route('projects.create')
+    //                     ->with('error', 'The idea submission deadline has passed.');
+    //             }
+    //             $isLate = true;
+    //         }
+    //     }
 
-        Auth::user()->projects()->create([
-            'title' => $validated['title'],
-            'description' => $validated['description'],
-            'supervisor_id' => $validated['supervisor_id'],
-            'status' => 'pending',
-            'current_phase' => Project::PHASE_IDEA,
-            'semester' => $semester,
-            'is_late' => $isLate,
-        ]);
+    //     Auth::user()->projects()->create([
+    //         'title' => $validated['title'],
+    //         'description' => $validated['description'],
+    //         'supervisor_id' => $validated['supervisor_id'],
+    //         'status' => 'pending',
+    //         'current_phase' => Project::PHASE_IDEA,
+    //         'semester' => $semester,
+    //         'is_late' => $isLate,
+    //     ]);
 
-        $message = 'Project idea submitted successfully!';
-        if ($isLate) {
-            $message .= ' (Submitted after deadline - marked as LATE)';
-        }
+    //     $message = 'Project idea submitted successfully!';
+    //     if ($isLate) {
+    //         $message .= ' (Submitted after deadline - marked as LATE)';
+    //     }
 
-        return redirect()->route('projects.index')->with('success', $message);
-    }
+    //     return redirect()->route('projects.index')->with('success', $message);
+    // }
 
     /**
      * Show the form for editing the specified resource. 
@@ -193,36 +349,36 @@ class ProjectController extends Controller
     /**
      * Update the specified resource in storage. 
      */
-    public function update(Request $request, Project $project): RedirectResponse
-    {
-        if ($project->user_id !== Auth::id()) {
-            abort(403);
-        }
+    // public function update(Request $request, Project $project): RedirectResponse
+    // {
+    //     if ($project->user_id !== Auth::id()) {
+    //         abort(403);
+    //     }
 
-        if ($project->status !== 'rejected') {
-            return redirect()
-                ->route('projects.index')
-                ->with('error', 'Only rejected projects can be edited.');
-        }
+    //     if ($project->status !== 'rejected') {
+    //         return redirect()
+    //             ->route('projects.index')
+    //             ->with('error', 'Only rejected projects can be edited.');
+    //     }
 
-        $validated = $request->validate([
-            'title' => 'required|string|max:255',
-            'description' => 'required|string',
-            'supervisor_id' => 'required|exists: users,id',
-        ]);
+    //     $validated = $request->validate([
+    //         'title' => 'required|string|max:255',
+    //         'description' => 'required|string',
+    //         'supervisor_id' => 'required|exists:users,id',
+    //     ]);
 
-        $project->update([
-            'title' => $validated['title'],
-            'description' => $validated['description'],
-            'supervisor_id' => $validated['supervisor_id'],
-            'status' => 'pending',
-            'rejection_reason' => null,
-        ]);
+    //     $project->update([
+    //         'title' => $validated['title'],
+    //         'description' => $validated['description'],
+    //         'supervisor_id' => $validated['supervisor_id'],
+    //         'status' => 'pending',
+    //         'rejection_reason' => null,
+    //     ]);
 
-        return redirect()
-            ->route('projects.index')
-            ->with('success', 'Project resubmitted successfully! ');
-    }
+    //     return redirect()
+    //         ->route('projects.index')
+    //         ->with('success', 'Project resubmitted successfully! ');
+    // }
 
     /**
      * Remove the specified resource from storage.
@@ -293,7 +449,7 @@ class ProjectController extends Controller
 
         // Get previous versions for reference
         $previousVersions = $project->scopeDocuments()
-            ->with(['uploader: id,name', 'reviewer:id,name'])
+            ->with(['uploader:id,name', 'reviewer:id,name'])
             ->get();
 
         // Get latest scope document status

@@ -2,7 +2,7 @@
     <x-slot name="header">
         <div class="flex justify-between items-center">
             <div class="flex items-center">
-                <a href="{{ route('admin.projects. index') }}" class="mr-4 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200">
+                <a href="{{ route('admin.projects.index') }}" class="mr-4 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200">
                     <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"/>
                     </svg>
@@ -15,7 +15,7 @@
                 <x-phase-badge :phase="$project->current_phase" />
                 <x-project-status-badge :status="$project->status" />
                 @if($project->is_late)
-                    <x-late-badge : show="true" />
+                    <x-late-badge :show="true" />
                 @endif
             </div>
         </div>

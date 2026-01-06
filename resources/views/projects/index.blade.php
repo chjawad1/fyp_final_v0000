@@ -4,7 +4,7 @@
             <h2 class="font-semibold text-xl text-gray-800 dark:text-gray-200 leading-tight">
                 {{ __('My Projects') }}
             </h2>
-            @if($projects->isEmpty())
+            @if(auth()->user()->canCreateNewProject())
                 <a href="{{ route('projects.create') }}" class="px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700">
                     New Project
                 </a>
@@ -13,7 +13,7 @@
     </x-slot>
 
     <div class="py-12">
-        <div class="max-w-7xl mx-auto sm:px-6 lg:px-8">
+        <div class="max-w-7xl mx-auto sm:px-6 lg: px-8">
 
             {{-- Flash Messages --}}
             @if(session('success'))
@@ -36,8 +36,40 @@
                 </div>
             @endif
 
+            {{-- Project Submission Info Banner --}}
+            @if(auth()->user()->role === 'student')
+                @php
+                    $projectCount = $projects->count();
+                    $hasApproved = $projects->where('status', 'approved')->count() > 0;
+                @endphp
+                <div class="mb-4 p-4 rounded-lg {{ $hasApproved ? 'bg-green-50 border border-green-200' : 'bg-blue-50 border border-blue-200' }}">
+                    <div class="flex items-center justify-between">
+                        <div>
+                            @if($hasApproved)
+                                <p class="text-green-800 font-medium">
+                                    <svg class="inline w-5 h-5 mr-1" fill="currentColor" viewBox="0 0 20 20">
+                                        <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/>
+                                    </svg>
+                                    You have an approved project.  No new submissions allowed.
+                                </p>
+                            @else
+                                <p class="text-blue-800 font-medium">
+                                    Project Submissions:  {{ $projectCount }} / 3
+                                </p>
+                                <p class="text-blue-600 text-sm">
+                                    You can submit up to 3 project ideas until one gets approved.
+                                </p>
+                            @endif
+                        </div>
+                        @if(! $hasApproved && $projectCount < 3)
+                            <span class="text-blue-600 text-sm">{{ 3 - $projectCount }} submission(s) remaining</span>
+                        @endif
+                    </div>
+                </div>
+            @endif
+
             @forelse($projects as $project)
-                <div class="bg-white dark:bg-gray-800 overflow-hidden shadow-sm sm:rounded-lg mb-6">
+                <div class="bg-white dark:bg-gray-800 overflow-hidden shadow-sm sm: rounded-lg mb-6">
                     <div class="p-6">
 
                         {{-- Project Header --}}
@@ -48,7 +80,7 @@
                                     <x-project-status-badge :status="$project->status" />
                                     <x-phase-badge :phase="$project->current_phase" />
                                     @if($project->is_late)
-                                        <x-late-badge :show="true" />
+                                        <x-late-badge : show="true" />
                                     @endif
                                 </div>
                                 <p class="text-sm text-gray-500 dark:text-gray-400">
@@ -109,7 +141,7 @@
                                                 {{-- Show feedback if revision required or rejected --}}
                                                 @if($project->latestScopeDocument->feedback && in_array($project->latestScopeDocument->status, ['revision_required', 'rejected']))
                                                     <div class="mt-2 p-2 bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded text-sm">
-                                                        <span class="font-medium text-yellow-800 dark:text-yellow-200">Feedback:</span>
+                                                        <span class="font-medium text-yellow-800 dark:text-yellow-200">Feedback: </span>
                                                         <span class="text-yellow-700 dark:text-yellow-300">{{ $project->latestScopeDocument->feedback }}</span>
                                                     </div>
                                                 @endif
@@ -117,7 +149,7 @@
 
                                             <div class="flex items-center gap-3">
                                                 <a href="{{ route('scope.document.download', $project->latestScopeDocument) }}" 
-                                                   class="text-indigo-600 hover:text-indigo-900 dark:text-indigo-400 dark: hover:text-indigo-300 text-sm font-medium">
+                                                   class="text-indigo-600 hover:text-indigo-900 dark:text-indigo-400 dark:hover:text-indigo-300 text-sm font-medium">
                                                     Download
                                                 </a>
 
@@ -155,7 +187,7 @@
                                                             <div class="flex items-center justify-between py-2 px-3 bg-white dark:bg-gray-800 rounded">
                                                                 <div class="flex items-center gap-2">
                                                                     <span class="text-gray-700 dark:text-gray-300">{{ $doc->version_display }}</span>
-                                                                    <x-scope-status-badge :status="$doc->status" size="xs" />
+                                                                    <x-scope-status-badge : status="$doc->status" size="xs" />
                                                                 </div>
                                                                 <a href="{{ route('scope.document.download', $doc) }}" class="text-indigo-600 dark:text-indigo-400 text-xs">
                                                                     Download
@@ -227,14 +259,16 @@
                         <svg class="mx-auto h-16 w-16 text-gray-400 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
                         </svg>
-                        <h3 class="text-lg font-medium text-gray-900 dark:text-gray-100 mb-2">No projects yet</h3>
-                        <p class="text-gray-500 dark:text-gray-400 mb-6">Get started by creating your FYP project proposal. </p>
-                        <a href="{{ route('projects.create') }}" class="inline-flex items-center px-6 py-3 bg-indigo-600 text-white rounded-md hover:bg-indigo-700">
-                            <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
-                            </svg>
-                            Create New Project
-                        </a>
+                        <h3 class="text-lg font-medium text-gray-900 dark: text-gray-100 mb-2">No projects yet</h3>
+                        <p class="text-gray-500 dark:text-gray-400 mb-6">Get started by creating your FYP project proposal.</p>
+                        @if(auth()->user()->canCreateNewProject())
+                            <a href="{{ route('projects.create') }}" class="inline-flex items-center px-6 py-3 bg-indigo-600 text-white rounded-md hover:bg-indigo-700">
+                                <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
+                                </svg>
+                                Create New Project
+                            </a>
+                        @endif
                     </div>
                 </div>
             @endforelse

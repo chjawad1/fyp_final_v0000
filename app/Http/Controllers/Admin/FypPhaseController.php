@@ -16,7 +16,7 @@ class FypPhaseController extends Controller
      */
     public function index(Request $request)
     {
-        $query = FypPhase::with('creator: id,name')
+        $query = FypPhase::with('creator:id,name')
             ->withCount('submissions');
 
         // Filter by semester
@@ -143,7 +143,7 @@ class FypPhaseController extends Controller
      */
     public function show(FypPhase $phase)
     {
-        $phase->load('creator: id,name');
+        $phase->load('creator:id,name');
 
         // Get projects in this phase (based on semester and current_phase mapping)
         $phaseMapping = [

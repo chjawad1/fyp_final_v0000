@@ -15,9 +15,9 @@ class ScopeReviewController extends Controller
     public function index(Request $request)
     {
         $query = ScopeDocument::with([
-            'project: id,title,user_id,supervisor_id,current_phase,semester,is_late',
-            'project. student:id,name,email',
-            'project. supervisor:id,name,email',
+            'project:id,title,user_id,supervisor_id,current_phase,semester,is_late',
+            'project.student:id,name,email',
+            'project.supervisor:id,name,email',
             'uploader:id,name',
             'reviewer:id,name',
         ]);
@@ -76,8 +76,8 @@ class ScopeReviewController extends Controller
     public function show(ScopeDocument $scopeDocument)
     {
         $scopeDocument->load([
-            'project: id,title,description,user_id,supervisor_id,status,current_phase,semester,is_late,created_at',
-            'project. student:id,name,email',
+            'project:id,title,description,user_id,supervisor_id,status,current_phase,semester,is_late,created_at',
+            'project.student:id,name,email',
             'project.supervisor:id,name,email',
             'uploader:id,name',
             'reviewer:id,name',
@@ -86,7 +86,7 @@ class ScopeReviewController extends Controller
         // Get all versions of scope documents for this project
         $allVersions = $scopeDocument->project
             ->scopeDocuments()
-            ->with(['uploader: id,name', 'reviewer:id,name'])
+            ->with(['uploader:id,name', 'reviewer:id,name'])
             ->orderBy('created_at', 'desc')
             ->get();
 

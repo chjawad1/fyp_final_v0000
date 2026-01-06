@@ -59,7 +59,42 @@
                     {{ session('error') }}
                 </div>
             @endif
-
+            @if($currentPhase)
+                <div class="bg-white dark:bg-gray-800 overflow-hidden shadow-sm sm: rounded-lg">
+                    <div class="p-4 flex items-center justify-between {{ $currentPhase->days_remaining <= 7 ? 'bg-yellow-50 dark:bg-yellow-900/20 border-l-4 border-yellow-500' : 'bg-blue-50 dark:bg-blue-900/20 border-l-4 border-blue-500' }}">
+                        <div class="flex items-center">
+                            <svg class="w-6 h-6 {{ $currentPhase->days_remaining <= 7 ? 'text-yellow-600' : 'text-blue-600' }} mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/>
+                            </svg>
+                            <div>
+                                <span class="font-semibold text-gray-900 dark:text-gray-100">{{ $currentPhase->name }}</span>
+                                <span class="text-gray-600 dark:text-gray-400 ml-2">
+                                    Deadline: {{ $currentPhase->end_date->format('M d, Y') }}
+                                </span>
+                            </div>
+                        </div>
+                        <div class="text-right">
+                            @if($currentPhase->days_remaining <= 0)
+                                <span class="px-3 py-1 bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200 rounded-full text-sm font-medium">
+                                    Deadline Passed
+                                </span>
+                            @elseif($currentPhase->days_remaining <= 3)
+                                <span class="px-3 py-1 bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200 rounded-full text-sm font-medium">
+                                    {{ $currentPhase->days_remaining }} day(s) left! 
+                                </span>
+                            @elseif($currentPhase->days_remaining <= 7)
+                                <span class="px-3 py-1 bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200 rounded-full text-sm font-medium">
+                                    {{ $currentPhase->days_remaining }} days remaining
+                                </span>
+                            @else
+                                <span class="px-3 py-1 bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200 rounded-full text-sm font-medium">
+                                    {{ $currentPhase->days_remaining }} days remaining
+                                </span>
+                            @endif
+                        </div>
+                    </div>
+                </div>
+            @endif
             {{-- Deadline Alert (if applicable) --}}
             @if($currentPhase && ($currentPhase->days_remaining <= 7 || $currentPhase->isDeadlinePassed()))
                 <div class="rounded-lg overflow-hidden {{ $currentPhase->isDeadlinePassed() ? 'bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800' : 'bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800' }}">
@@ -170,7 +205,7 @@
                                         </p>
                                     </div>
                                     <div class="flex items-center gap-2">
-                                        <x-project-status-badge : status="$project->status" />
+                                        <x-project-status-badge :status="$project->status" />
                                         <x-phase-badge :phase="$project->current_phase" />
                                         @if($project->is_late)
                                             <x-late-badge :show="true" />

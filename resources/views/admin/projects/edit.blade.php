@@ -57,23 +57,23 @@
                             <textarea id="description" 
                                       name="description" 
                                       rows="4"
-                                      class="w-full border-gray-300 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300 focus:border-indigo-500 dark:focus:border-indigo-600 focus:ring-indigo-500 dark:focus:ring-indigo-600 rounded-md shadow-sm"
+                                      class="w-full border-gray-300 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300 focus:border-indigo-500 dark:focus:border-indigo-600 focus:ring-indigo-500 dark:focus: ring-indigo-600 rounded-md shadow-sm"
                                       required>{{ old('description', $project->description) }}</textarea>
                         </div>
 
-                        <!-- Student Selection -->
+                        <!-- Student Selection (Read-only display or select) -->
                         <div class="mb-4">
-                            <label for="student_id" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                                Assign to Student
+                            <label for="user_id" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                                Assigned Student
                             </label>
-                            <select id="student_id" 
-                                    name="student_id"
+                            <select id="user_id" 
+                                    name="user_id"
                                     class="w-full border-gray-300 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300 focus:border-indigo-500 dark:focus:border-indigo-600 focus:ring-indigo-500 dark:focus:ring-indigo-600 rounded-md shadow-sm"
                                     required>
                                 <option value="">Select a student</option>
                                 @foreach($students as $student)
                                     <option value="{{ $student->id }}" 
-                                            @selected(old('student_id', $project->student_id) == $student->id)>
+                                            @selected(old('user_id', $project->user_id) == $student->id)>
                                         {{ $student->name }} ({{ $student->email }})
                                     </option>
                                 @endforeach
@@ -87,7 +87,7 @@
                             </label>
                             <select id="supervisor_id" 
                                     name="supervisor_id"
-                                    class="w-full border-gray-300 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300 focus:border-indigo-500 dark:focus:border-indigo-600 focus:ring-indigo-500 dark:focus:ring-indigo-600 rounded-md shadow-sm">
+                                    class="w-full border-gray-300 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300 focus:border-indigo-500 dark: focus:border-indigo-600 focus:ring-indigo-500 dark:focus:ring-indigo-600 rounded-md shadow-sm">
                                 <option value="">Select a supervisor (optional)</option>
                                 @foreach($supervisors as $supervisor)
                                     <option value="{{ $supervisor->id }}" 
@@ -98,8 +98,42 @@
                             </select>
                         </div>
 
+                        <!-- Semester Selection -->
+                        <div class="mb-4">
+                            <label for="semester" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                                Semester
+                            </label>
+                            <select id="semester" 
+                                    name="semester"
+                                    class="w-full border-gray-300 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300 focus:border-indigo-500 dark:focus:border-indigo-600 focus:ring-indigo-500 dark:focus:ring-indigo-600 rounded-md shadow-sm">
+                                <option value="">Select semester (optional)</option>
+                                @foreach($semesters as $semester)
+                                    <option value="{{ $semester }}" 
+                                            @selected(old('semester', $project->semester) == $semester)>
+                                        {{ $semester }}
+                                    </option>
+                                @endforeach
+                            </select>
+                        </div>
+
+                        <!-- Current Phase -->
+                        <div class="mb-4">
+                            <label for="current_phase" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                                Current Phase
+                            </label>
+                            <select id="current_phase" 
+                                    name="current_phase"
+                                    class="w-full border-gray-300 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300 focus:border-indigo-500 dark:focus:border-indigo-600 focus:ring-indigo-500 dark: focus:ring-indigo-600 rounded-md shadow-sm"
+                                    required>
+                                <option value="idea" @selected(old('current_phase', $project->current_phase) === 'idea')>Idea Approval</option>
+                                <option value="scope" @selected(old('current_phase', $project->current_phase) === 'scope')>Scope Approval</option>
+                                <option value="defence" @selected(old('current_phase', $project->current_phase) === 'defence')>Defence</option>
+                                <option value="completed" @selected(old('current_phase', $project->current_phase) === 'completed')>Completed</option>
+                            </select>
+                        </div>
+
                         <!-- Status -->
-                        <div class="mb-6">
+                        <div class="mb-4">
                             <label for="status" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                                 Project Status
                             </label>
@@ -110,7 +144,20 @@
                                 <option value="pending" @selected(old('status', $project->status) === 'pending')>Pending</option>
                                 <option value="approved" @selected(old('status', $project->status) === 'approved')>Approved</option>
                                 <option value="rejected" @selected(old('status', $project->status) === 'rejected')>Rejected</option>
+                                <option value="completed" @selected(old('status', $project->status) === 'completed')>Completed</option>
                             </select>
+                        </div>
+
+                        <!-- Late Submission Flag -->
+                        <div class="mb-6">
+                            <label class="flex items-center">
+                                <input type="checkbox" 
+                                       name="is_late" 
+                                       value="1"
+                                       {{ old('is_late', $project->is_late) ? 'checked' : '' }}
+                                       class="rounded border-gray-300 dark:border-gray-700 text-indigo-600 shadow-sm focus:ring-indigo-500 dark: focus:ring-indigo-600 dark:focus:ring-offset-gray-800">
+                                <span class="ml-2 text-sm text-gray-600 dark:text-gray-400">Mark as Late Submission</span>
+                            </label>
                         </div>
 
                         <!-- Submit Buttons -->

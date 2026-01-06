@@ -136,7 +136,7 @@
                                                 </div>
                                             </td>
                                             <td class="px-6 py-4 whitespace-nowrap">
-                                                <x-phase-status-badge : status="$phase->status" />
+                                                <x-phase-status-badge :status="$phase->status" />
                                             </td>
                                             <td class="px-6 py-4 whitespace-nowrap">
                                                 <form action="{{ route('admin.phases.toggle-late', $phase) }}" method="POST" class="inline">
